@@ -121,8 +121,17 @@ public class Program {
 				tmp = in.nextLine();
 			}while(tmp.startsWith("#") || tmp.trim().length() <= 0);
 			
+			Scanner paramScan = new Scanner(tmp);
+			
 			@SuppressWarnings("unused")
-			int numNodes = Integer.parseInt(tmp.trim());
+			int numNodes = paramScan.nextInt();
+			int minPerActive = paramScan.nextInt();
+			int maxPerActive = paramScan.nextInt();
+			int minSendDelay = paramScan.nextInt();
+			int snapshotDelay = paramScan.nextInt();
+			int maxNumber = paramScan.nextInt();
+			
+			paramScan.close();
 			
 			//Scan to my nodes info
 			do{
