@@ -4,12 +4,29 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class Program {
+	static int minPerActive, maxPerActive, minSendDelay, snapshotDelay, maxNumber;
 	static int neighborsNode[], numNeighbors, myNode, myRound;
 	static String address[], port[], myAddress, myPort;
 	static List<LinkedBlockingQueue<Message>> MessageQ; //List of FIFO Blocking queue of messages
 	
 	public static void main(String[] args) { //
 		setup(args);
+		
+		boolean isActive;
+		
+		int msgsSent = 0;
+		int msgsToSend = 0;
+		
+		Random rand = new Random();
+		
+		if(myNode == 0) {
+			isActive = true;
+		} else {
+			int randNum = rand.nextInt();
+			isActive = (randNum%2 == 0) ? true : false;
+		}
+		
+		
 		int i = 0;
 		myRound = 0;
 		MessageQ = new ArrayList<LinkedBlockingQueue<Message>>(numNeighbors);
@@ -47,12 +64,17 @@ public class Program {
 		try{
 			boolean done = false;
 			
+			int roundMsgs = 0;
+			
 			//Start Algorithm
 			do{
-				//Send everyone my n hop neighbors
-				for(i = 0; i < numNeighbors;i++)
-					oos[i].writeObject(new Message(myAddress,address[i],"",myRound,khop.get(myRound)));
+				//Send message to a random neighbor
+				if(isActive) {
+					int index = rand.nextInt() % neighborsNode.length;
+					oos[index].writeObject(new Message(myAddress,address[index],"",myRound,khop.get(myRound)));
+				}
 				
+				//TODO: Change what happens on a read
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
 				khop.add(new ArrayList<Integer>());
 				for(i = 0; i < numNeighbors; i++){
@@ -73,6 +95,7 @@ public class Program {
 					myRound++;
 			}while(!done);
 
+			//TODO: Update or remove this
 			for(i = 0; i < numNeighbors;i++)
 				oos[i].writeObject(new Message(myAddress,address[i],"",myRound-1,khop.get(myRound-1)));
 			
@@ -82,7 +105,7 @@ public class Program {
 			e.printStackTrace();
 		}
 		
-		
+		//TODO: Will need to write to different files here
 		try{
 			for(i = 0; i < numNeighbors; i++)
 				oos[i].writeObject(new Message(myAddress,address[i],"END", myRound, tmp = null));
@@ -125,11 +148,11 @@ public class Program {
 			
 			@SuppressWarnings("unused")
 			int numNodes = paramScan.nextInt();
-			int minPerActive = paramScan.nextInt();
-			int maxPerActive = paramScan.nextInt();
-			int minSendDelay = paramScan.nextInt();
-			int snapshotDelay = paramScan.nextInt();
-			int maxNumber = paramScan.nextInt();
+			minPerActive = paramScan.nextInt();
+			maxPerActive = paramScan.nextInt();
+			minSendDelay = paramScan.nextInt();
+			snapshotDelay = paramScan.nextInt();
+			maxNumber = paramScan.nextInt();
 			
 			paramScan.close();
 			
