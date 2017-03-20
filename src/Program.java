@@ -80,6 +80,7 @@ public class Program {
 				//Send message to a random neighbor
 				if(!isSnapshoting && isActive && !isTreeBuilding && timeForNextAppSend <= System.currentTimeMillis()) {
 					int index = rand.nextInt() % neighborsNode.length;
+					clock[myNode]++;
 					oos[index].writeObject(new Message(myAddress,address[neighborsNode[index]],"app", clock));
 					timeForNextAppSend = System.currentTimeMillis() + minSendDelay;
 					roundSentMsgs++;
@@ -96,7 +97,6 @@ public class Program {
 					}
 				}
 				
-				//TODO: Increment clock on application actions and use piggybacked clock
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
 				for(i = 0; i < numNeighbors; i++){
 					
@@ -104,8 +104,14 @@ public class Program {
 						m = MessageQ.get(i).remove();
 						
 						if(m.GetMessage().compareTo("app") == 0) {
-							if(totalSentMsgs < maxNumber) {
+							if(!isActive && totalSentMsgs < maxNumber) {
 								isActive = true;
+							}
+							
+							for(int k=0; k<clock.length; k++) {
+								if(clock[k] < m.GetClock()[k]) {
+									clock[k] = m.GetClock()[k];
+								}
 							}
 						} else if(m.GetMessage().compareTo("snapshot") == 0) {
 							//TODO: Chandy & Lamports protocol
