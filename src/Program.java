@@ -133,6 +133,8 @@ public class Program {
 									clock[k] = m.GetClock()[k];
 								}
 							}
+							
+							clock[myNode]++;
 						} else if(m.GetMessage().compareTo("snapshot") == 0) {
 							if(children == null || children.isEmpty()) {
 								isSnapshoting = true;
@@ -476,12 +478,27 @@ public class Program {
 			}
 		}
 		
-		
 		return true;
 	}
 	
 	private static boolean detectConsistency() {
-		//TODO: consistency detection logic (fidge/matterns)
+		
+		for(int i=0; i<clockSet.size(); i++) {
+			int[] baseClock = clockSet.get(i);
+			int baseValue = baseClock[i];
+			
+			for(int x=0; x<clockSet.size(); i++) {
+				if(x != i) {
+					int[] currClock = clockSet.get(x);
+					int currValue = currClock[i];
+					
+					if(currValue > baseValue) {
+						return false;
+					}
+				}
+			}
+		}
+		
 		return true;
 	}
 }
