@@ -63,15 +63,31 @@ public class Program {
 			boolean done = false;
 			boolean treeReply = false;
 			boolean treeSent = (myNode == 0) ? true : false;
+			
+			long timeForNextAppSend = System.currentTimeMillis();
+			
 			List<String> treeMsgsReceived = new ArrayList<>();
 			List<String> treeTemp = new ArrayList<>();
 			
 			//Start Algorithm
 			do{
 				//Send message to a random neighbor
-				if(!isSnapshoting && isActive && !isTreeBuilding) {
+				if(!isSnapshoting && isActive && !isTreeBuilding && timeForNextAppSend <= System.currentTimeMillis()) {
 					int index = rand.nextInt() % neighborsNode.length;
-					oos[index].writeObject(new Message(myAddress,address[index],""));
+					oos[index].writeObject(new Message(myAddress,address[index],"app"));
+					timeForNextAppSend = System.currentTimeMillis() + minSendDelay;
+					roundSentMsgs++;
+					totalSentMsgs++;
+					
+					if(roundSentMsgs >= maxPerActive) {
+						isActive = false;
+						roundSentMsgs = 0;
+					} else if(roundSentMsgs >= minPerActive) {
+						if(rand.nextInt()%2 == 0) {
+							isActive = false;
+							roundSentMsgs = 0;
+						}
+					}
 				}
 				
 				//TODO: Change what happens on a read
@@ -82,7 +98,9 @@ public class Program {
 						m = MessageQ.get(i).remove();
 						
 						if(m.GetMessage().compareTo("app") == 0) {
-							
+							if(totalSentMsgs < maxNumber) {
+								isActive = true;
+							}
 						} else if(m.GetMessage().compareTo("snapshot") == 0) {
 							
 						} else if(m.GetMessage().compareTo("info") == 0) {
