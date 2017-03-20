@@ -6,6 +6,9 @@ class Message implements Serializable{
 	private String message;
 	private int from, to;
 	int[] clock = null;
+	Map<Integer, int[]> clocks = null;
+	Map<Integer, int[]> msgValues = null;
+	Map<Integer, Boolean> status = null;
 	
 	Message(int f, int t, String m, int[] c){
 		from = f;
@@ -18,6 +21,22 @@ class Message implements Serializable{
 		to = t;
 		from = f;
 		message = m;
+	}
+	
+	Message(int f, int t, String m, int[] c, Map<Integer, int[]> map, int lastDest, int lastClock, Map<Integer, int[]> msgs, boolean isActive, Map<Integer, Boolean> _status) {
+		from = f;
+		to = t;
+		message = m;
+		
+		clocks = map;
+		clocks.put(f, c);
+		
+		msgValues = msgs;
+		int[] temp = {t, c[f]};
+		msgs.put(f, temp);
+		
+		status = _status;
+		status.put(f, isActive);
 	}
 	
 	public String GetMessage(){
