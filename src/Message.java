@@ -4,13 +4,13 @@ import java.util.*;
 class Message implements Serializable{
 	private static final long serialVersionUID = 2675242361263880997L;
 	private String from,to,message;
-	ArrayList<Integer> clock = null;
+	int[] clock = null;
 	
-	Message(String f, String t, String m, ArrayList<Integer> c){
+	Message(String f, String t, String m, int[] c){
 		from = f;
 		to = t;
 		message = m;
-		clock = new ArrayList<Integer>(c);
+		clock = Arrays.copyOf(c, c.length);
 	}
 	
 	Message(String f, String t, String m){
@@ -31,7 +31,7 @@ class Message implements Serializable{
 		return from;
 	}
 	
-	public ArrayList<Integer> GetClock(){
+	public int[] GetClock(){
 		return clock;
 	}
 	
@@ -50,8 +50,8 @@ class Message implements Serializable{
 		return true;
 	}
 	
-	public boolean SetClock(ArrayList<Integer> a){
-		clock = new ArrayList<Integer>(a);
+	public boolean SetClock(int[] c){
+		clock = Arrays.copyOf(c, c.length);
 		return true;
 	}
 	

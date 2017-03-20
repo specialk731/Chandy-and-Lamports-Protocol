@@ -4,15 +4,21 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class Program {
-	static int minPerActive, maxPerActive, minSendDelay, snapshotDelay, maxNumber;
+	static int numNodes, minPerActive, maxPerActive, minSendDelay, snapshotDelay, maxNumber;
 	static int neighborsNode[], numNeighbors, myNode, myRound;
 	static String parentAddress;
 	static List<String> children = new ArrayList<>();
 	static String address[], port[], myAddress, myPort;
 	static List<LinkedBlockingQueue<Message>> MessageQ; //List of FIFO Blocking queue of messages
 	
-	public static void main(String[] args) { //
+	public static void main(String[] args) throws IOException { //
 		setup(args);
+		
+		int[] clock = new int[numNodes];
+		
+		for(int i=0; i<clock.length; i++) {
+			clock[i] = 0;
+		}
 		
 		boolean isActive, isSnapshoting = false, isTreeBuilding = true;
 		
@@ -74,7 +80,7 @@ public class Program {
 				//Send message to a random neighbor
 				if(!isSnapshoting && isActive && !isTreeBuilding && timeForNextAppSend <= System.currentTimeMillis()) {
 					int index = rand.nextInt() % neighborsNode.length;
-					oos[index].writeObject(new Message(myAddress,address[neighborsNode[index]],"app"));
+					oos[index].writeObject(new Message(myAddress,address[neighborsNode[index]],"app", clock));
 					timeForNextAppSend = System.currentTimeMillis() + minSendDelay;
 					roundSentMsgs++;
 					totalSentMsgs++;
@@ -90,6 +96,7 @@ public class Program {
 					}
 				}
 				
+				//TODO: Increment clock on application actions and use piggybacked clock
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
 				for(i = 0; i < numNeighbors; i++){
 					
@@ -101,7 +108,7 @@ public class Program {
 								isActive = true;
 							}
 						} else if(m.GetMessage().compareTo("snapshot") == 0) {
-							
+							//TODO: Chandy & Lamports protocol
 						} else if(m.GetMessage().compareTo("info") == 0) {
 							
 						} else if(m.GetMessage().compareTo("tree") == 0) {
@@ -149,11 +156,9 @@ public class Program {
 					sendTreeMsgs(treeMsgsReceived, oos);
 				}
 				
+				//TODO: Termination
+				
 			}while(!done);
-
-			//TODO: Update or remove this
-			for(i = 0; i < numNeighbors;i++)
-				oos[i].writeObject(new Message(myAddress,address[neighborsNode[i]],"",myRound-1,khop.get(myRound-1)));
 			
 		} catch (Exception e)
 		{
@@ -163,30 +168,10 @@ public class Program {
 		
 		//TODO: Will need to write to different files here
 		try{
-			for(i = 0; i < numNeighbors; i++)
-				oos[i].writeObject(new Message(myAddress,address[i],"END", myRound, tmp = null));
-			Thread.sleep(5000);
-			System.out.println("My Node: " + myNode);
-			System.out.println("My k-hop Neighbors: ");
 			
-			for(i = 0; i < khop.size() - 1; i++){
-				tmpset = new HashSet<Integer>(khop.get(i));
-				System.out.print(i + ") ");
-				for(int s : tmpset) {
-					System.out.print(s + " ");
-				}
-				System.out.println();
-				}
-			for(i = 0; i < numNeighbors; i++){
-				oos[i].close();
-				clients[i].close();
-			}
-			
-			((Server) Server).TurnOffServer();
 		} catch(Exception e) {
 			System.out.println("Got Error Cleaning up: " + e);
 		}
-		System.out.println("END");
 	}
 	
 	public static void setup(String args[]){
@@ -202,8 +187,7 @@ public class Program {
 			
 			Scanner paramScan = new Scanner(tmp);
 			
-			@SuppressWarnings("unused")
-			int numNodes = paramScan.nextInt();
+			numNodes = paramScan.nextInt();
 			minPerActive = paramScan.nextInt();
 			maxPerActive = paramScan.nextInt();
 			minSendDelay = paramScan.nextInt();
