@@ -6,16 +6,18 @@ import java.util.concurrent.*;
 public class Program {
 	static int minPerActive, maxPerActive, minSendDelay, snapshotDelay, maxNumber;
 	static int neighborsNode[], numNeighbors, myNode, myRound;
+	static String parentAddress;
+	static List<String> children = new ArrayList<>();
 	static String address[], port[], myAddress, myPort;
 	static List<LinkedBlockingQueue<Message>> MessageQ; //List of FIFO Blocking queue of messages
 	
 	public static void main(String[] args) { //
 		setup(args);
 		
-		boolean isActive;
+		boolean isActive, isSnapshoting = false, isTreeBuilding = true;
 		
-		int msgsSent = 0;
-		int msgsToSend = 0;
+		int totalSentMsgs = 0;
+		int roundSentMsgs = 0;
 		
 		Random rand = new Random();
 		
@@ -34,7 +36,7 @@ public class Program {
 		for(i = 0; i < numNeighbors; i++)
 			MessageQ.add(i, new LinkedBlockingQueue<Message>(100));
 				
-		Message m = new Message("To","From","Message");
+		Message m = null;
 		
 		Thread Server = new Server(myAddress, myPort);
 		Server.start();
@@ -43,56 +45,93 @@ public class Program {
 		ObjectOutputStream[] oos = new ObjectOutputStream[numNeighbors];
 		
 		try{
-		Thread.sleep(10000);
-		for(i = 0; i < numNeighbors; i++){
-			clients[i] = new Socket(address[i], Integer.parseInt(port[i]));
-			oos[i] = new ObjectOutputStream(clients[i].getOutputStream());
-						
-			oos[i].writeInt(myNode);
+			Thread.sleep(1000);
+			for(i = 0; i < numNeighbors; i++){
+				clients[i] = new Socket(address[i], Integer.parseInt(port[i]));
+				oos[i] = new ObjectOutputStream(clients[i].getOutputStream());
+							
+				oos[i].writeInt(myNode);
+				}
 			}
-		}
 		catch(Exception e){
 				System.out.println("Got Error in Client Setup: " + e);
 		}
-		
-		ArrayList<ArrayList<Integer>> khop = new ArrayList<ArrayList<Integer>>(5);
-		ArrayList<Integer> tmp = new ArrayList<Integer>(1);
-		Set<Integer> tmpset;
-		tmp.add(myNode);
-		khop.add(tmp);
+				
+		startTree(oos);
 		
 		try{
 			boolean done = false;
-			
-			int roundMsgs = 0;
+			boolean treeReply = false;
+			boolean treeSent = (myNode == 0) ? true : false;
+			List<String> treeMsgsReceived = new ArrayList<>();
+			List<String> treeTemp = new ArrayList<>();
 			
 			//Start Algorithm
 			do{
 				//Send message to a random neighbor
-				if(isActive) {
+				if(!isSnapshoting && isActive && !isTreeBuilding) {
 					int index = rand.nextInt() % neighborsNode.length;
-					oos[index].writeObject(new Message(myAddress,address[index],"",myRound,khop.get(myRound)));
+					oos[index].writeObject(new Message(myAddress,address[index],""));
 				}
 				
 				//TODO: Change what happens on a read
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
-				khop.add(new ArrayList<Integer>());
 				for(i = 0; i < numNeighbors; i++){
-					m = MessageQ.get(i).take();
-					tmp = m.GetNodes();
-					for(int p = 0; p < khop.size() - 1; p++){
-							tmp.removeAll(khop.get(p));
-					}
-					//IF tmp has duplicates remove them
-					tmpset = new HashSet<Integer>(tmp);
-					tmp = new ArrayList<Integer>(tmpset);
 					
-					khop.get(myRound + 1).addAll(tmp);
+					if(MessageQ.get(i).peek() != null) {
+						m = MessageQ.get(i).remove();
+						
+						if(m.GetMessage().compareTo("app") == 0) {
+							
+						} else if(m.GetMessage().compareTo("snapshot") == 0) {
+							
+						} else if(m.GetMessage().compareTo("info") == 0) {
+							
+						} else if(m.GetMessage().compareTo("tree") == 0) {
+							if(parentAddress == null || parentAddress.isEmpty()) {
+								parentAddress = m.GetFrom();
+								treeMsgsReceived.add(m.GetFrom());
+								treeTemp.add(m.GetFrom());
+							} else {
+								treeMsgsReceived.add(m.GetFrom());
+								treeTemp.add(m.GetFrom());
+							}
+						} else if(m.GetMessage().compareTo("child") == 0) {
+							treeTemp.add(m.GetFrom());
+							children.add(m.GetFrom());
+						} else if(m.GetMessage().compareTo("notChild") == 0) {
+							treeTemp.add(m.GetFrom());
+						} else if(m.GetMessage().compareTo("begin") == 0) {
+							isTreeBuilding = false;
+							if(children != null && !children.isEmpty()) {
+								sendBeginMsgs(oos);
+							}
+						}
+					}
 				}
-				if(khop.get(myRound + 1).isEmpty())
-					done = true;
-				else
-					myRound++;
+				
+				if(!treeReply && treeTemp.size() == neighborsNode.length) {
+					
+					treeReply = true;
+					treeSent = true;
+					
+					if(myNode == 0) {
+						isTreeBuilding = false;
+						sendBeginMsgs(oos);
+					} else {
+						for(int x=0; x<treeMsgsReceived.size(); x++) {
+							if(treeMsgsReceived.get(x) != parentAddress) {
+								sendNotChildMsg(treeMsgsReceived.get(x), oos);
+							} else {
+								sendChildMsg(treeMsgsReceived.get(x), oos);
+							}
+						}
+					}
+				} else if(!treeSent && !treeMsgsReceived.isEmpty()) {
+					treeSent = true;
+					sendTreeMsgs(treeMsgsReceived, oos);
+				}
+				
 			}while(!done);
 
 			//TODO: Update or remove this
@@ -235,5 +274,63 @@ public class Program {
 			i++;
 		}
 		System.out.println("------------------------------");
+	}
+	
+	private static void startTree(ObjectOutputStream[] oos) throws IOException {
+		if(myNode == 0) {
+			for(int i = 0; i < numNeighbors; i++) {
+				oos[i].writeObject(new Message(myAddress, address[i], "tree"));
+			}
+		}
+	}
+	
+	private static void sendAppMsg() {
+		
+	}
+	
+	private static void sendMarker() {
+		
+	}
+	
+	private static void receiveMarker() {
+		
+	}
+	
+	private static void sendTreeMsgs(List<String> msgsReceived, ObjectOutputStream[] oos) throws IOException {
+		for(int i=0; i<address.length; i++) {
+			boolean receivedFromAddress = false;
+			
+			for(String a : msgsReceived) {
+				if(a.compareTo(address[i]) == 0) {
+					receivedFromAddress = true;
+				}
+			}
+			
+			if(!receivedFromAddress) {
+				oos[i].writeObject(new Message(myAddress, address[i], "tree"));
+			}
+		}
+	}
+	
+	private static void sendBeginMsgs(ObjectOutputStream[] oos) throws IOException {
+		for(int i = 0; i<children.size(); i++) {
+			oos[i].writeObject(new Message(myAddress, children.get(i), "begin"));
+		}
+	}
+	
+	private static void sendChildMsg(String a, ObjectOutputStream[] oos) throws IOException {
+		for(int i=0; i<address.length; i++) {
+			if(address[i].compareTo(a) == 0) {
+				oos[i].writeObject(new Message(myAddress, a, "child"));
+			}
+		}
+	}
+	
+	private static void sendNotChildMsg(String a, ObjectOutputStream[] oos ) throws IOException {
+		for(int i=0; i<address.length; i++) {
+			if(address[i].compareTo(a) != 0) {
+				oos[i].writeObject(new Message(myAddress, a, "notChild"));
+			}
+		}
 	}
 }

@@ -3,16 +3,14 @@ import java.util.*;
 
 class Message implements Serializable{
 	private static final long serialVersionUID = 2675242361263880997L;
-	private String to,from,message;
-	int round = -1;
-	ArrayList<Integer> Nodes;
+	private String from,to,message;
+	ArrayList<Integer> clock = null;
 	
-	Message(String f, String t, String m, int r, ArrayList<Integer> a){
+	Message(String f, String t, String m, ArrayList<Integer> c){
 		from = f;
 		to = t;
 		message = m;
-		round = r;
-		Nodes = a;
+		clock = new ArrayList<Integer>(c);
 	}
 	
 	Message(String f, String t, String m){
@@ -33,8 +31,8 @@ class Message implements Serializable{
 		return from;
 	}
 	
-	public ArrayList<Integer> GetNodes(){
-		return Nodes;
+	public ArrayList<Integer> GetClock(){
+		return clock;
 	}
 	
 	public boolean SetMessage(String s){
@@ -52,20 +50,13 @@ class Message implements Serializable{
 		return true;
 	}
 	
-	public boolean SetNodes(ArrayList<Integer> a){
-		Nodes = a;
+	public boolean SetClock(ArrayList<Integer> a){
+		clock = new ArrayList<Integer>(a);
 		return true;
 	}
-
+	
 	public void Display() {
-		System.out.println("Round: " + round);
-		System.out.println("To: " + to);
-		System.out.println("From: " + from);
-		System.out.println("Message: " + message);
-		System.out.print("newNodes: ");
-		for(int i = 0; i < Nodes.size(); i++)
-			System.out.print(Nodes.get(i) + " ");
-		System.out.println();
+
 	}
 	
 }
