@@ -47,7 +47,7 @@ public class Program {
 		try{
 			Thread.sleep(1000);
 			for(i = 0; i < numNeighbors; i++){
-				clients[i] = new Socket(address[i], Integer.parseInt(port[i]));
+				clients[i] = new Socket(address[neighborsNode[i]], Integer.parseInt(port[i]));
 				oos[i] = new ObjectOutputStream(clients[i].getOutputStream());
 							
 				oos[i].writeInt(myNode);
@@ -74,7 +74,7 @@ public class Program {
 				//Send message to a random neighbor
 				if(!isSnapshoting && isActive && !isTreeBuilding && timeForNextAppSend <= System.currentTimeMillis()) {
 					int index = rand.nextInt() % neighborsNode.length;
-					oos[index].writeObject(new Message(myAddress,address[index],"app"));
+					oos[index].writeObject(new Message(myAddress,address[neighborsNode[index]],"app"));
 					timeForNextAppSend = System.currentTimeMillis() + minSendDelay;
 					roundSentMsgs++;
 					totalSentMsgs++;
@@ -90,7 +90,6 @@ public class Program {
 					}
 				}
 				
-				//TODO: Change what happens on a read
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
 				for(i = 0; i < numNeighbors; i++){
 					
@@ -154,7 +153,7 @@ public class Program {
 
 			//TODO: Update or remove this
 			for(i = 0; i < numNeighbors;i++)
-				oos[i].writeObject(new Message(myAddress,address[i],"",myRound-1,khop.get(myRound-1)));
+				oos[i].writeObject(new Message(myAddress,address[neighborsNode[i]],"",myRound-1,khop.get(myRound-1)));
 			
 		} catch (Exception e)
 		{
@@ -213,48 +212,61 @@ public class Program {
 			
 			paramScan.close();
 			
-			//Scan to my nodes info
-			do{
-				tmp = in.nextLine();
-				tmp2 = tmp.trim().split("\\s+");
+			address = new String[numNodes];
+			port = new String[numNodes];
+			
+			String tempLine = in.nextLine().trim();
+			
+			while(tempLine == null || tempLine.isEmpty() || tempLine.charAt(0) == '#') {
+				tempLine = in.nextLine().trim();
 			}
-			while(tmp2.length < 1 || !tmp2[0].equals(Integer.toString(myNode)));
-
-			myAddress = tmp2[1];
-			myPort = tmp2[2];
+			
+			int i=0;
+			//Scan to my nodes info
+			while(tempLine != null && !tempLine.isEmpty() && tempLine.charAt(0) != '#'){
+				tmp2 = tempLine.trim().split("\\s+");
+				
+				address[i] = tmp2[1];
+				port[i] = tmp2[2];
+				i++;
+				
+				tempLine = in.nextLine().trim();
+			}
 						
 			//Scan to my neighbors list
-			do{
-				tmp = in.nextLine();
-				tmp2 = tmp.trim().split("\\s+");
+			tempLine = in.nextLine().trim();
+			
+			while(tempLine == null || tempLine.isEmpty() || tempLine.charAt(0) == '#') {
+				tempLine = in.nextLine().trim();
 			}
-			while(tmp2.length < 1 || !tmp2[0].equals(Integer.toString(myNode)));
+			
+			i=0;
+			//Scan to my nodes info
+			while(i<myNode){
+				tempLine = in.nextLine().trim();
+				i++;
+			}
 			
 			tmp2 = tmp.trim().split("\\s+");
-			numNeighbors = tmp2.length - 1;
+			
+			int tempCount = 0;
+			
+			for(int x=0; x<tmp2.length; x++) {
+				if(tmp2[x].charAt(0) != '#') {
+					tempCount++;
+				} else {
+					break;
+				}
+			}
+				
+			
+			numNeighbors = tempCount;
 			neighborsNode = new int[numNeighbors];
 			address = new String[numNeighbors];
 			port = new String[numNeighbors];
 			
-			for(int i = 1; i < tmp2.length; i++){
-				neighborsNode[i - 1] = Integer.parseInt(tmp2[i]);
-			}
-			
-			//Scan to my neighbors info
-			for(int i = 0; i < numNeighbors; i++){
-				in.close();
-				in = new Scanner(new FileReader("config.txt"));
-				do{
-					tmp = in.nextLine();
-				}while(tmp.startsWith("#") || tmp.trim().length() <= 0);
-				
-				do{
-					tmp = in.nextLine();
-				}while(!tmp.trim().startsWith(Integer.toString(neighborsNode[i])));
-				
-				tmp2 = tmp.trim().split("\\s+");
-				address[i] = tmp2[1];
-				port[i] = tmp2[2];
+			for(int y = 1; y < tempCount; y++){
+				neighborsNode[y - 1] = Integer.parseInt(tmp2[y]);
 			}
 			
 			in.close();
@@ -315,11 +327,13 @@ public class Program {
 	}
 	
 	private static void sendTreeMsgs(List<String> msgsReceived, ObjectOutputStream[] oos) throws IOException {
-		for(int i=0; i<address.length; i++) {
+		for(int i=0; i<neighborsNode.length; i++) {
 			boolean receivedFromAddress = false;
+			String addressString = address[neighborsNode[i]];
+			
 			
 			for(String a : msgsReceived) {
-				if(a.compareTo(address[i]) == 0) {
+				if(a.compareTo(addressString) == 0) {
 					receivedFromAddress = true;
 				}
 			}
@@ -337,16 +351,20 @@ public class Program {
 	}
 	
 	private static void sendChildMsg(String a, ObjectOutputStream[] oos) throws IOException {
-		for(int i=0; i<address.length; i++) {
-			if(address[i].compareTo(a) == 0) {
+		for(int i=0; i<neighborsNode.length; i++) {
+			String addressString = address[neighborsNode[i]];
+			
+			if(addressString.compareTo(a) == 0) {
 				oos[i].writeObject(new Message(myAddress, a, "child"));
 			}
 		}
 	}
 	
 	private static void sendNotChildMsg(String a, ObjectOutputStream[] oos ) throws IOException {
-		for(int i=0; i<address.length; i++) {
-			if(address[i].compareTo(a) != 0) {
+		for(int i=0; i<neighborsNode.length; i++) {
+			String addressString = address[neighborsNode[i]];
+			
+			if(addressString.compareTo(a) != 0) {
 				oos[i].writeObject(new Message(myAddress, a, "notChild"));
 			}
 		}
