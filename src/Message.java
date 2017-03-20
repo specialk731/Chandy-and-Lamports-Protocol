@@ -3,17 +3,18 @@ import java.util.*;
 
 class Message implements Serializable{
 	private static final long serialVersionUID = 2675242361263880997L;
-	private String from,to,message;
+	private String message;
+	private int from, to;
 	int[] clock = null;
 	
-	Message(String f, String t, String m, int[] c){
+	Message(int f, int t, String m, int[] c){
 		from = f;
 		to = t;
 		message = m;
 		clock = Arrays.copyOf(c, c.length);
 	}
 	
-	Message(String f, String t, String m){
+	Message(int f, int t, String m){
 		to = t;
 		from = f;
 		message = m;
@@ -23,11 +24,11 @@ class Message implements Serializable{
 		return message;
 	}
 	
-	public String GetTo(){
+	public int GetTo(){
 		return to;
 	}
 	
-	public String GetFrom(){
+	public int GetFrom(){
 		return from;
 	}
 	
@@ -40,12 +41,12 @@ class Message implements Serializable{
 		return true;
 	}
 	
-	public boolean SetTo(String s){
+	public boolean SetTo(int s){
 		to = s;
 		return true;
 	}
 	
-	public boolean SetFrom(String s){
+	public boolean SetFrom(int s){
 		from = s;
 		return true;
 	}
