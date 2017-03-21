@@ -20,7 +20,7 @@ class Server extends Thread{
 		try{
 			serversocket = new ServerSocket(myPort);		
 			
-			for(int i = 0; i < Program.addresses.size(); i++){
+			for(int i = 0; i < Program.addresses.size()-1; i++){
 				Socket s = serversocket.accept();
 				threads.add(new ServerThread(s));
 				threads.get(i).start();

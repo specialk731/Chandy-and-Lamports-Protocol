@@ -20,18 +20,18 @@ class ServerThread extends Thread{
 			
 			node = ois.readInt();
 					
-			if(node >= 0)
-			do{
-				m = (Message)ois.readObject();
-				
-				if(m.GetMessage().compareTo("KILL") == 0) {
-					break;
+			if(node >= 0) {
+				do {
+					m = (Message)ois.readObject();
+					
+					if(m.GetMessage().compareTo("KILL") == 0) {
+						break;
+					}
+					
+					Program.MessageQ.get(node).put(m);
 				}
-				
-				Program.MessageQ.get(node).put(m);
-			}
-			while(!m.GetMessage().equals("END"));
-			else{
+				while(!m.GetMessage().equals("END"));
+			} else {
 				System.out.println("Got a bad Node");
 			}
 			

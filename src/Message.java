@@ -32,7 +32,7 @@ class Message implements Serializable{
 		clocks.put(f, c);
 		
 		msgValues = msgs;
-		int[] temp = {t, c[f]};
+		int[] temp = {lastDest, lastClock};
 		msgs.put(f, temp);
 		
 		status = _status;

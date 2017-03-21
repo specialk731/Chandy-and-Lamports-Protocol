@@ -35,7 +35,7 @@ public class Program {
 		
 		String outputFileName = "config-" + myNode + ".txt";
 		
-		BufferedWriter fileOutput = new BufferedWriter(new FileWriter(outputFileName));
+		PrintWriter fileOutput = new PrintWriter(outputFileName, "UTF-8");
 		
 		Random rand = new Random();
 		
@@ -69,7 +69,7 @@ public class Program {
 				if(i != myNode ){
 					clients.put(i, new Socket(addresses.get(i), Integer.parseInt(ports.get(i))));
 					oos.put(i, new ObjectOutputStream(clients.get(i).getOutputStream()));
-								
+			
 					oos.get(i).writeInt(myNode);
 				}
 			}
@@ -99,7 +99,7 @@ public class Program {
 				if(!isSnapshoting && isActive && !isTreeBuilding && timeForNextAppSend <= System.currentTimeMillis()) {
 					int index = rand.nextInt() % neighborsNode.length;
 					clock[myNode]++;
-					oos.get(index).writeObject(new Message(myNode, neighborsNode[index], "app", clock));
+					oos.get(neighborsNode[index]).writeObject(new Message(myNode, neighborsNode[index], "app", clock));
 					timeForNextAppSend = System.currentTimeMillis() + minSendDelay;
 					roundSentMsgs++;
 					totalSentMsgs++;
@@ -120,8 +120,8 @@ public class Program {
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
 				for(i = 0; i < numNeighbors; i++){
 					
-					if(MessageQ.get(i).peek() != null) {
-						m = MessageQ.get(i).remove();
+					if(MessageQ.get(neighborsNode[i]).peek() != null) {
+						m = MessageQ.get(neighborsNode[i]).remove();
 						
 						if(m.GetMessage().compareTo("app") == 0) {
 							if(!isActive && totalSentMsgs < maxNumber) {
@@ -169,6 +169,12 @@ public class Program {
 								if(myNode != 0 ) {
 									oos.get(parentNode).writeObject(new Message(myNode, parentNode, "info", clock, clockSet, lastSentDest, lastSentClockNum, msgInfoSet, isActive, statusSet));
 								} else if(myNode == 0) {
+									
+									clockSet.put(myNode, clock);
+									int[] tempArray = {lastSentDest, lastSentClockNum};
+									msgInfoSet.put(myNode, tempArray);
+									statusSet.put(myNode, isActive);
+									
 									if(detectConsistency()) {
 										if(detectTermination()) {
 											terminate = true;
@@ -177,6 +183,14 @@ public class Program {
 												oos.get(children.get(h)).writeObject(new Message(myNode, children.get(h), "resume"));
 											}
 										}
+										
+										for(int w=0; w<clock.length; w++) {
+											fileOutput.print(clock[w] + " ");
+										}
+										
+										fileOutput.println();
+										
+										isSnapshoting = false;
 									} else {
 										isSnapshoting = false;
 										for(int p=0; p<children.size(); p++) {
@@ -199,10 +213,10 @@ public class Program {
 								isSnapshoting = false;
 								
 								for(int w=0; w<clock.length; w++) {
-									fileOutput.write(clock[w] + " ");
+									fileOutput.print(clock[w] + " ");
 								}
 								
-								fileOutput.newLine();
+								fileOutput.println();
 							} else {
 								isSnapshoting = false;
 								for(int y=0; y<children.size(); y++) {
@@ -210,10 +224,10 @@ public class Program {
 								}
 								
 								for(int w=0; w<clock.length; w++) {
-									fileOutput.write(clock[w] + " ");
+									fileOutput.print(clock[w] + " ");
 								}
 								
-								fileOutput.newLine();
+								fileOutput.println();
 							}
 						} else if(m.GetMessage().compareTo("tree") == 0) {
 							if(parentNode == -1) {
@@ -236,6 +250,12 @@ public class Program {
 							}
 						} else if(m.GetMessage().compareTo("END") == 0) {
 							terminate = true;
+							
+							for(int w=0; w<clock.length; w++) {
+								fileOutput.print(clock[w] + " ");
+							}
+							
+							fileOutput.println();
 						}
 					}
 				}
@@ -273,11 +293,14 @@ public class Program {
 				
 			}while(!terminate);
 			
-			for(int j=0; j<oos.size(); j++) {
-				if(children.contains(j)) {
-					oos.get(j).writeObject(new Message(myNode, j, "END"));
+			for(Map.Entry<Integer, ObjectOutputStream> entry : oos.entrySet()) {
+				int key = entry.getKey();
+				ObjectOutputStream tempOOS = entry.getValue();
+				
+				if(children.contains(key)) {
+					tempOOS.writeObject(new Message(myNode, key, "END"));
 				} else {
-					oos.get(j).writeObject(new Message(myNode, j, "KILL"));
+					tempOOS.writeObject(new Message(myNode, key, "KILL"));
 				}
 			}
 			
@@ -293,9 +316,11 @@ public class Program {
 			e1.printStackTrace();
 		}
 		
-		for(int j=0; j<clients.size(); j++) {
-			clients.get(j).close();
+		for(Map.Entry<Integer, Socket> entry : clients.entrySet()) {
+			entry.getValue().close();
 		}
+		
+		fileOutput.close();
 	}
 	
 	public static void setup(String args[]){
@@ -352,7 +377,7 @@ public class Program {
 				i++;
 			}
 			
-			tmp2 = tmp.trim().split("\\s+");
+			tmp2 = tempLine.trim().split("\\s+");
 			
 			int tempCount = 0;
 			
@@ -368,8 +393,8 @@ public class Program {
 			numNeighbors = tempCount;
 			neighborsNode = new int[numNeighbors];
 			
-			for(int y = 1; y < tempCount; y++){
-				neighborsNode[y - 1] = Integer.parseInt(tmp2[y]);
+			for(int y = 0; y < tempCount; y++){
+				neighborsNode[y] = Integer.parseInt(tmp2[y]);
 			}
 			
 			myAddress = addresses.get(myNode);
@@ -487,7 +512,7 @@ public class Program {
 			int[] baseClock = clockSet.get(i);
 			int baseValue = baseClock[i];
 			
-			for(int x=0; x<clockSet.size(); i++) {
+			for(int x=0; x<clockSet.size(); x++) {
 				if(x != i) {
 					int[] currClock = clockSet.get(x);
 					int currValue = currClock[i];
