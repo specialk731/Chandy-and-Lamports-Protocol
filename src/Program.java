@@ -118,10 +118,10 @@ public class Program {
 				}
 				
 				//Read each message from my 1 hop neighbors and get their n hop neighbors
-				for(i = 0; i < numNeighbors; i++){
+				for(i = 0; i < MessageQ.size(); i++){
 					
-					if(MessageQ.get(neighborsNode[i]).peek() != null) {
-						m = MessageQ.get(neighborsNode[i]).remove();
+					if(MessageQ.get(i).peek() != null) {
+						m = MessageQ.get(i).remove();
 						
 						if(m.GetMessage().compareTo("app") == 0) {
 							if(!isActive && totalSentMsgs < maxNumber) {
