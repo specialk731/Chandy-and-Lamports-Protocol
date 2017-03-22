@@ -34,8 +34,9 @@ public class Program {
 		int lastSentDest = -1;
 		
 		String outputFileName = "config-" + myNode + ".txt";
+		File outputFile = new File(outputFileName);
 		
-		PrintWriter fileOutput = new PrintWriter(outputFileName, "UTF-8");
+		PrintWriter fileOutput = new PrintWriter(outputFile, "UTF-8");
 		
 		Random rand = new Random();
 		
@@ -97,7 +98,7 @@ public class Program {
 				
 				//Send message to a random neighbor
 				if(!isSnapshoting && isActive && !isTreeBuilding && timeForNextAppSend <= System.currentTimeMillis()) {
-					int index = rand.nextInt() % neighborsNode.length;
+					int index = (rand.nextInt(100)) % neighborsNode.length;
 					clock[myNode]++;
 					oos.get(neighborsNode[index]).writeObject(new Message(myNode, neighborsNode[index], "app", clock));
 					timeForNextAppSend = System.currentTimeMillis() + minSendDelay;
@@ -166,6 +167,9 @@ public class Program {
 							}
 							
 							if(infoReceived == children.size()) {
+								
+								infoReceived = 0;
+								
 								if(myNode != 0 ) {
 									oos.get(parentNode).writeObject(new Message(myNode, parentNode, "info", clock, clockSet, lastSentDest, lastSentClockNum, msgInfoSet, isActive, statusSet));
 								} else if(myNode == 0) {
@@ -178,10 +182,12 @@ public class Program {
 									if(detectConsistency()) {
 										if(detectTermination()) {
 											terminate = true;
+											timeForNextSnapshot= System.currentTimeMillis() + snapshotDelay;
 										} else {
 											for(int h=0; h<children.size(); h++) {
 												oos.get(children.get(h)).writeObject(new Message(myNode, children.get(h), "resume"));
 											}
+											timeForNextSnapshot= System.currentTimeMillis() + snapshotDelay;
 										}
 										
 										for(int w=0; w<clock.length; w++) {
@@ -197,6 +203,11 @@ public class Program {
 											oos.get(children.get(p)).writeObject(new Message(myNode, children.get(p), "abort"));
 										}
 									}
+									
+									isSnapshoting = false;
+									clockSet.clear();
+									msgInfoSet.clear();
+									statusSet.clear();
 								}
 							}
 						} else if(m.GetMessage().compareTo("abort") == 0) {
@@ -260,7 +271,12 @@ public class Program {
 					}
 				}
 				
-				if(!treeReply && treeTemp.size() == neighborsNode.length) {
+				if(!treeSent && !treeMsgsReceived.isEmpty()) {
+					treeSent = true;
+					sendTreeMsgs(treeMsgsReceived, oos, parentNode);
+				}
+				
+				if(!treeReply && treeTemp.size() >= oos.size()) {
 					
 					treeReply = true;
 					treeSent = true;
@@ -278,9 +294,6 @@ public class Program {
 							}
 						}
 					}
-				} else if(!treeSent && !treeMsgsReceived.isEmpty()) {
-					treeSent = true;
-					sendTreeMsgs(treeMsgsReceived, oos);
 				}
 				
 				if(myNode == 0 && !isSnapshoting && !isTreeBuilding && System.currentTimeMillis() >= timeForNextSnapshot) {
@@ -441,26 +454,73 @@ public class Program {
 	
 	private static void startTree(Map<Integer, ObjectOutputStream> oos) throws IOException {
 		if(myNode == 0) {			
-			for(int i = 0; i < numNeighbors; i++) {
-				int nodeNum = neighborsNode[i];
-				oos.get(nodeNum).writeObject(new Message(myNode, nodeNum, "tree"));
+			for(Map.Entry<Integer, ObjectOutputStream> entry : oos.entrySet()) {
+				int key = entry.getKey();
+				boolean isNeighbor = false;
+				
+				for(int i=0; i<neighborsNode.length; i++) {
+					if(neighborsNode[i] == key) {
+						isNeighbor = true;
+						break;
+					}
+				}
+				
+				if(isNeighbor) {
+					entry.getValue().writeObject(new Message(myNode, key, "tree"));
+				} else {
+					entry.getValue().writeObject(new Message(myNode, key, "notChild"));
+				}
 			}
 		}
 	}
 	
-	private static void sendTreeMsgs(List<Integer> msgsReceived, Map<Integer, ObjectOutputStream> oos) throws IOException {
-		for(int i=0; i<neighborsNode.length; i++) {
-			boolean receivedFromAddress = false;
-			int nodeNum = neighborsNode[i];
+	private static void sendTreeMsgs(List<Integer> msgsReceived, Map<Integer, ObjectOutputStream> oos, int parent) throws IOException {
+//		for(int i=0; i<neighborsNode.length; i++) {
+//			boolean receivedFromAddress = false;
+//			int nodeNum = neighborsNode[i];
+//			
+//			for(Integer a : msgsReceived) {
+//				if(nodeNum == a) {
+//					receivedFromAddress = true;
+//				}
+//			}
+//			
+//			if(!receivedFromAddress) {
+//				oos.get(nodeNum).writeObject(new Message(myNode, nodeNum, "tree"));
+//			}
+//		}
+		
+		for(Map.Entry<Integer, ObjectOutputStream> entry : oos.entrySet()) {
+			int key = entry.getKey();
 			
-			for(Integer a : msgsReceived) {
-				if(nodeNum == a) {
-					receivedFromAddress = true;
+			if(key != parent) {
+				boolean isNeighbor = false;
+				
+				for(int i=0; i<neighborsNode.length; i++) {
+					if(neighborsNode[i] == key) {
+						isNeighbor = true;
+						break;
+					}
 				}
-			}
-			
-			if(!receivedFromAddress) {
-				oos.get(nodeNum).writeObject(new Message(myNode, nodeNum, "tree"));
+				
+				if(isNeighbor) {
+					boolean receivedFromAddress = false;
+					
+					for(Integer a : msgsReceived) {
+						if(key == a) {
+							receivedFromAddress = true;
+							break;
+						}
+					}
+					
+					if(receivedFromAddress) {
+						entry.getValue().writeObject(new Message(myNode, key, "notChild"));
+					} else {
+						entry.getValue().writeObject(new Message(myNode, key, "tree"));
+					}
+				} else {
+					entry.getValue().writeObject(new Message(myNode, key, "notChild"));
+				}
 			}
 		}
 	}
@@ -484,6 +544,7 @@ public class Program {
 		
 		for(Map.Entry<Integer, Boolean> entry : statusSet.entrySet()) {
 			if(entry.getValue()) {
+				System.out.println("Failed due to Status");
 				return false;
 			}
 		}
@@ -498,6 +559,7 @@ public class Program {
 				int destValue = destClock[src];
 				
 				if(clockVal > destValue) {
+					System.out.println("Failed due to messages");
 					return false;
 				}
 			}
