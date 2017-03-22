@@ -24,6 +24,7 @@ class ServerThread extends Thread{
 				do {
 					m = (Message)ois.readObject();
 					
+					//If a KILL message is received, it need to be passed to the process. Break out of the loop and end the thread
 					if(m.GetMessage().compareTo("KILL") == 0) {
 						break;
 					}
