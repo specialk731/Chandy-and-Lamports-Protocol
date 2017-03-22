@@ -12,12 +12,14 @@ public class Program {
 	static Map<Integer, String> addresses = new HashMap<>();
 	static Map<Integer, String> ports = new HashMap<>();
 	public static boolean termThreads = false;
-	static Map<Integer, int[]> clockSet =  new HashMap<>();
-	static Map<Integer, int[]> msgInfoSet =  new HashMap<>();
-	static Map<Integer, Boolean> statusSet =  new HashMap<>();
+
 	
 	public static void main(String[] args) throws IOException { //
 		setup(args);
+		
+		Map<Integer, int[]> clockSet =  new HashMap<>();
+		Map<Integer, int[]> msgInfoSet =  new HashMap<>();
+		Map<Integer, Boolean> statusSet =  new HashMap<>();
 		
 		int[] clock = new int[numNodes];
 		int parentNode = (myNode == 0) ? 0 : -1;
@@ -179,8 +181,8 @@ public class Program {
 									msgInfoSet.put(myNode, tempArray);
 									statusSet.put(myNode, isActive);
 									
-									if(detectConsistency()) {
-										if(detectTermination()) {
+									if(detectConsistency(clockSet)) {
+										if(detectTermination(clockSet, msgInfoSet, statusSet)) {
 											terminate = true;
 											timeForNextSnapshot= System.currentTimeMillis() + snapshotDelay;
 										} else {
@@ -218,6 +220,9 @@ public class Program {
 								for(int y=0; y<children.size(); y++) {
 									oos.get(children.get(y)).writeObject(new Message(myNode, children.get(y), "abort"));
 								}
+								clockSet.clear();
+								msgInfoSet.clear();
+								statusSet.clear();
 							}
 						} else if(m.GetMessage().compareTo("resume") == 0) {
 							if(children == null || children.isEmpty()) {
@@ -239,6 +244,10 @@ public class Program {
 								}
 								
 								fileOutput.println();
+								
+								clockSet.clear();
+								msgInfoSet.clear();
+								statusSet.clear();
 							}
 						} else if(m.GetMessage().compareTo("tree") == 0) {
 							if(parentNode == -1) {
@@ -540,7 +549,7 @@ public class Program {
 		oos.get(a).writeObject(new Message(myNode, a, "notChild"));
 	}
 	
-	private static boolean detectTermination() {
+	private static boolean detectTermination(Map<Integer, int[]> clockSet, Map<Integer, int[]> msgInfoSet, Map<Integer, Boolean> statusSet) {
 		
 		for(Map.Entry<Integer, Boolean> entry : statusSet.entrySet()) {
 			if(entry.getValue()) {
@@ -568,7 +577,7 @@ public class Program {
 		return true;
 	}
 	
-	private static boolean detectConsistency() {
+	private static boolean detectConsistency(Map<Integer, int[]> clockSet) {
 		
 		for(int i=0; i<clockSet.size(); i++) {
 			int[] baseClock = clockSet.get(i);
@@ -580,6 +589,7 @@ public class Program {
 					int currValue = currClock[i];
 					
 					if(currValue > baseValue) {
+						System.out.println("Failed Consistency check == Base Clock: " + i + ", " + baseValue + "; Incorrect Clock: " + x + currValue); 
 						return false;
 					}
 				}
