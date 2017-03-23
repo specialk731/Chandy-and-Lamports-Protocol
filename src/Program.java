@@ -39,10 +39,18 @@ public class Program {
 		int lastSentDest = -1;
 		
 		//open output file and writer
+
 		String outputFileName = "config-" + myNode + ".txt";
-		File outputFile = new File(outputFileName);
-		PrintWriter fileOutput = new PrintWriter(outputFile, "UTF-8");
-		
+		File dir = new File(System.getProperty("user.dir") + "/output");
+		PrintWriter fileOutput = null;
+
+		if(dir.mkdir() || dir.isDirectory()) {
+			File outputFile = new File(dir, outputFileName);
+			fileOutput = new PrintWriter(outputFile, "UTF-8");
+		} else {
+			File outputFile = new File(outputFileName);
+			fileOutput = new PrintWriter(outputFile, "UTF-8");
+		}
 		//used for activeness determination and which node to send to
 		Random rand = new Random();
 		
@@ -75,7 +83,7 @@ public class Program {
 		
 		//create sockets and Object Output Streams and map them
 		try{
-			Thread.sleep(3000);
+			Thread.sleep(5000);
 			for(i = 0; i < addresses.size(); i++){
 				if(i != myNode ){
 					clients.put(i, new Socket(addresses.get(i), Integer.parseInt(ports.get(i))));
@@ -85,7 +93,7 @@ public class Program {
 				}
 			}
 		} catch(Exception e){
-				System.out.println("Got Error in Client Setup: " + e);
+				System.out.println(myNode + "Got Error in Client Setup: " + e);
 		}
 				
 		//Node 0 sends initial tree building messages
@@ -408,7 +416,7 @@ public class Program {
 			
 			//store the address and port of each node
 			int i=0;
-			while(tempLine != null && !tempLine.isEmpty() && tempLine.charAt(0) != '#'){
+			while(tempLine != null && !tempLine.isEmpty() && tempLine.charAt(0) != '#' && i < numNodes){
 				tmp2 = tempLine.trim().split("\\s+");
 				
 				addresses.put(i, tmp2[1]);
@@ -419,7 +427,6 @@ public class Program {
 			}
 						
 			//Scan to my neighbors list
-			tempLine = in.nextLine().trim();
 			
 			while(tempLine == null || tempLine.isEmpty() || tempLine.charAt(0) == '#') {
 				tempLine = in.nextLine().trim();

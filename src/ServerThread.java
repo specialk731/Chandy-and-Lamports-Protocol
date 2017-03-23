@@ -40,6 +40,8 @@ class ServerThread extends Thread{
 			oos.close();
 			socket.close();
 			
+		} catch (SocketException e) {
+			
 		} catch (Exception e) {
 			System.out.println("Error in ServerThread: " + e);
 		}

@@ -1,0 +1,10 @@
+ssh tnw130030@dc10.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc11.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc12.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc14.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc15.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc16.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc17.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc18.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc19.utdallas.edu "killall -u tnw130030";
+ssh tnw130030@dc20.utdallas.edu "killall -u tnw130030";

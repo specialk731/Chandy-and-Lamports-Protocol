@@ -1,16 +1,16 @@
-# six global parameters (see above)
+#
 10 10 20 150 2000 40
 
-0 127.0.0.1 40000	# nodeID hostName listen Port
-1 127.0.0.1 40001
-2 127.0.0.1 40002
-3 127.0.0.1 40003
-4 127.0.0.1 40004
-5 127.0.0.1 40005
-6 127.0.0.1 40006
-7 127.0.0.1 40007
-8 127.0.0.1 40008
-9 127.0.0.1 40009
+0 dc10.utdallas.edu 3000
+1 dc11.utdallas.edu 3001
+2 dc12.utdallas.edu 3002
+3 dc14.utdallas.edu 3003
+4 dc15.utdallas.edu 3004
+5 dc16.utdallas.edu 3005
+6 dc17.utdallas.edu 3006
+7 dc18.utdallas.edu 3007
+8 dc19.utdallas.edu 3008
+9 dc20.utdallas.edu 3009
 
 1 2
 0 3 6

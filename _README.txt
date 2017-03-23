@@ -21,5 +21,5 @@ How to Run
 After compiling, make sure that the 'config.txt' file is in the base folder for the project. The file
 	must be named 'config.txt'
 use the command 'java Program <Node ID>' for each node in the system that you wish to run. Each node should
-	be run on a seperate machine.
+	be run on the machine specified in 'config.txt'
 The output files will be located at 'output/config-<nodeID>.txt'
